@@ -15,8 +15,21 @@ from app.models.product import Product
 from app.models.user import User
 from app.core.security import get_password_hash
 
-TEST_DB_URL = "sqlite:///./test_flashcart.db"
-test_engine = create_engine(TEST_DB_URL, connect_args={"check_same_thread": False})
+from sqlalchemy.pool import StaticPool
+
+# Configurable Test Database: Supports TEST_DATABASE_URL (e.g. MySQL)
+# or in-memory sqlite isolated strictly within test fixture overrides.
+TEST_DB_URL = os.getenv("TEST_DATABASE_URL", "sqlite:///:memory:")
+
+if "sqlite" in TEST_DB_URL:
+    test_engine = create_engine(
+        TEST_DB_URL,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+else:
+    test_engine = create_engine(TEST_DB_URL, pool_pre_ping=True)
+
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 
 
@@ -30,10 +43,8 @@ def override_get_db():
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_database():
-    # Remove old test db file if exists
-    if os.path.exists("./test_flashcart.db"):
-        os.remove("./test_flashcart.db")
-
+    import app.main as main_mod
+    main_mod.engine = test_engine
     Base.metadata.create_all(bind=test_engine)
     app.dependency_overrides[get_db] = override_get_db
 
@@ -61,7 +72,7 @@ def setup_test_database():
             weight="1 L",
             tax_rate=0.0,
             stock=100,
-            store_id="STORE_DMART_001",
+            store_id="STORE_FLASHCART_001",
             is_active=True
         ),
         Product(
@@ -75,7 +86,7 @@ def setup_test_database():
             weight="250 g",
             tax_rate=0.05,
             stock=250,
-            store_id="STORE_DMART_001",
+            store_id="STORE_FLASHCART_001",
             is_active=True
         ),
         Product(
@@ -89,12 +100,18 @@ def setup_test_database():
             weight="100 g",
             tax_rate=0.18,
             stock=80,
-            store_id="STORE_DMART_001",
+            store_id="STORE_FLASHCART_001",
             is_active=True
         ),
     ]
     for p in products:
         db.add(p)
+
+    # Also seed the 10 QR products for end-to-end QR testing
+    from seed import QR_PRODUCTS
+    for p_data in QR_PRODUCTS:
+        db.add(Product(**p_data))
+
     db.commit()
     db.close()
 
@@ -102,11 +119,18 @@ def setup_test_database():
 
     # Teardown
     Base.metadata.drop_all(bind=test_engine)
-    if os.path.exists("./test_flashcart.db"):
-        os.remove("./test_flashcart.db")
 
 
 @pytest.fixture
 def client():
     with TestClient(app) as c:
         yield c
+
+
+@pytest.fixture
+def db_session():
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

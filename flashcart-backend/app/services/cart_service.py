@@ -1,7 +1,9 @@
+import uuid
 from typing import List, Optional, Tuple
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.models.product import Product
+from app.models.cart import Cart, CartItem
 from app.schemas.cart import CartItemIn, CartRevalidateResponse, RevalidatedItem
 
 
@@ -34,11 +36,15 @@ class CartService:
         cls, 
         db: Session, 
         items: List[CartItemIn], 
-        coupon_code: Optional[str] = None
+        coupon_code: Optional[str] = None,
+        user_id: Optional[str] = None,
+        cart_id: Optional[str] = None,
+        persist: bool = True
     ) -> CartRevalidateResponse:
         """
         Authoritatively calculates pricing, tax, discounts, and totals from the database.
         NEVER relies on prices sent from the client.
+        Optionally persists active shopping cart state in MySQL carts/cart_items tables.
         """
         if not items:
             return CartRevalidateResponse(
@@ -49,7 +55,8 @@ class CartService:
                 grand_total=0.0,
                 total_items=0,
                 coupon_applied=None,
-                message="Cart is empty"
+                message="Cart is empty",
+                cart_id=cart_id
             )
 
         revalidated_items: List[RevalidatedItem] = []
@@ -101,6 +108,23 @@ class CartService:
         discount_amount, coupon_msg = cls.evaluate_coupon(coupon_code, subtotal)
         grand_total = max(0.0, round(subtotal + tax_amount - discount_amount, 2))
 
+        assigned_cart_id = cart_id or f"CART-{uuid.uuid4().hex[:10].upper()}"
+
+        # Persist cart in MySQL if requested (e.g. user_id present or persist=True)
+        if persist and (user_id or cart_id):
+            cls._persist_cart_to_db(
+                db=db,
+                cart_id=assigned_cart_id,
+                user_id=user_id,
+                coupon_code=coupon_code,
+                subtotal=subtotal,
+                tax_amount=tax_amount,
+                discount_amount=discount_amount,
+                grand_total=grand_total,
+                total_items=total_quantity,
+                revalidated_items=revalidated_items
+            )
+
         return CartRevalidateResponse(
             items=revalidated_items,
             subtotal=subtotal,
@@ -109,5 +133,77 @@ class CartService:
             grand_total=grand_total,
             total_items=total_quantity,
             coupon_applied=coupon_msg if discount_amount > 0 else None,
-            message="Cart verified authoritatively with supermarket database."
+            message="Cart verified authoritatively with supermarket database.",
+            cart_id=assigned_cart_id
         )
+
+    @classmethod
+    def _persist_cart_to_db(
+        cls,
+        db: Session,
+        cart_id: str,
+        user_id: Optional[str],
+        coupon_code: Optional[str],
+        subtotal: float,
+        tax_amount: float,
+        discount_amount: float,
+        grand_total: float,
+        total_items: int,
+        revalidated_items: List[RevalidatedItem]
+    ) -> Cart:
+        """Helper to upsert cart and line items into MySQL."""
+        cart = db.query(Cart).filter(Cart.cart_id == cart_id).first()
+        if not cart:
+            cart = Cart(
+                cart_id=cart_id,
+                user_id=user_id,
+                store_id="STORE_FLASHCART_001",
+                coupon_code=coupon_code,
+                status="ACTIVE",
+                subtotal=subtotal,
+                tax_amount=tax_amount,
+                discount_amount=discount_amount,
+                grand_total=grand_total,
+                total_items=total_items,
+            )
+            db.add(cart)
+        else:
+            cart.user_id = user_id or cart.user_id
+            cart.coupon_code = coupon_code
+            cart.subtotal = subtotal
+            cart.tax_amount = tax_amount
+            cart.discount_amount = discount_amount
+            cart.grand_total = grand_total
+            cart.total_items = total_items
+            cart.items.clear()
+
+        # Insert fresh line items
+        for item in revalidated_items:
+            db.add(
+                CartItem(
+                    cart_id=cart.cart_id,
+                    product_id=item.product_id,
+                    barcode=item.barcode,
+                    product_name=item.name,
+                    unit_price=item.unit_price,
+                    quantity=item.quantity,
+                    tax_rate=item.tax_rate,
+                    tax_amount=item.tax_amount,
+                    total_price=item.total_price,
+                )
+            )
+
+        db.commit()
+        db.refresh(cart)
+        return cart
+
+    @classmethod
+    def get_cart_by_id(cls, db: Session, cart_id: str) -> Optional[Cart]:
+        return db.query(Cart).filter(Cart.cart_id == cart_id).first()
+
+    @classmethod
+    def get_user_active_cart(cls, db: Session, user_id: str) -> Optional[Cart]:
+        return db.query(Cart).filter(
+            Cart.user_id == user_id,
+            Cart.status == "ACTIVE"
+        ).order_by(Cart.created_at.desc()).first()

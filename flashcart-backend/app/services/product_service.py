@@ -6,17 +6,46 @@ from app.schemas.product import ProductCreate, ProductUpdate
 
 
 class ProductService:
+    _lookup_cache = {}
+
     @staticmethod
     def get_by_barcode(db: Session, barcode: str) -> Optional[Product]:
-        return db.query(Product).filter(
-            Product.barcode == barcode.strip(), 
+        code = barcode.strip()
+        if code in ProductService._lookup_cache:
+            return ProductService._lookup_cache[code]
+
+        stripped = code.replace("FLASHCART-", "")
+        prefixed = f"FLASHCART-{code}" if not code.startswith("FLASHCART-") else code
+        prod = db.query(Product).filter(
+            or_(
+                Product.barcode == code,
+                Product.product_id == code,
+                Product.barcode == prefixed,
+                Product.product_id == stripped,
+                Product.barcode == stripped
+            ), 
             Product.is_active == True
         ).first()
 
+        if prod:
+            ProductService._lookup_cache[code] = prod
+            ProductService._lookup_cache[prod.barcode] = prod
+            ProductService._lookup_cache[prod.product_id] = prod
+            ProductService._lookup_cache[stripped] = prod
+            ProductService._lookup_cache[prefixed] = prod
+
+        return prod
+
     @staticmethod
     def get_by_id(db: Session, product_id: str) -> Optional[Product]:
+        pid = product_id.strip()
+        stripped = pid.replace("FLASHCART-", "")
         return db.query(Product).filter(
-            Product.product_id == product_id, 
+            or_(
+                Product.product_id == pid,
+                Product.product_id == stripped,
+                Product.barcode == pid
+            ), 
             Product.is_active == True
         ).first()
 
@@ -50,6 +79,7 @@ class ProductService:
 
     @staticmethod
     def create_or_update(db: Session, product_in: ProductCreate) -> Product:
+        ProductService._lookup_cache.clear()
         existing = db.query(Product).filter(
             or_(
                 Product.barcode == product_in.barcode,

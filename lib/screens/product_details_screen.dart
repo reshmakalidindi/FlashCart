@@ -119,7 +119,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         product.category,
                         style: const TextStyle(
                           fontSize: 11,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w500,
                           color: Colors.white,
                         ),
                       ),
@@ -152,13 +152,13 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                           const Text(
                             '✓ Product Added to Cart',
                             style: TextStyle(
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w600,
                               color: AppColors.success,
                             ),
                           ),
                           Text(
                             '${product.name} • ${product.weight} • ₹${product.price}',
-                            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w400, color: AppColors.textSecondary),
                           ),
                         ],
                       ),
@@ -174,7 +174,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               product.name,
               style: const TextStyle(
                 fontSize: 22,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary,
               ),
             ),
@@ -183,6 +183,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               'SKU / ID: ${product.id} • Barcode: ${product.barcode} • Weight: ${product.weight}',
               style: const TextStyle(
                 fontSize: 12,
+                fontWeight: FontWeight.w400,
                 color: AppColors.textSecondary,
               ),
             ),
@@ -192,6 +193,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               product.description,
               style: const TextStyle(
                 fontSize: 13,
+                fontWeight: FontWeight.w400,
                 color: AppColors.textSecondary,
                 height: 1.4,
               ),
@@ -211,7 +213,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                     'GST Tax: ${product.taxPercentage.toStringAsFixed(0)}% (${product.taxCode})',
                     style: const TextStyle(
                       fontSize: 11,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w500,
                       color: AppColors.primaryDark,
                     ),
                   ),
@@ -226,7 +228,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   ),
                   child: Text(
                     product.storeId,
-                    style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w400, color: AppColors.textSecondary),
                   ),
                 ),
               ],
@@ -245,13 +247,13 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   children: [
                     const Text(
                       'Unit Price',
-                      style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w400, color: AppColors.textSecondary),
                     ),
                     PriceText(
                       amount: product.price,
                       style: const TextStyle(
                         fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w700,
                         color: AppColors.primary,
                       ),
                     ),
@@ -280,7 +282,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                           '$_quantity',
                           style: const TextStyle(
                             fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w600,
                             color: AppColors.textPrimary,
                           ),
                         ),

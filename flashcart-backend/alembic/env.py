@@ -8,18 +8,21 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.core.config import settings
 from app.core.database import Base, engine
-import app.models  # load models for metadata
+import app.models  # load all models (User, Product, Cart, CartItem, Order, OrderItem, PaymentRecord, ExitVerificationLog)
 
 config = context.config
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+# Dynamically set sqlalchemy.url from settings to avoid hardcoded credentials
+config.set_main_option("sqlalchemy.url", settings.sqlalchemy_database_url)
+
 target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
-    url = str(engine.url)
+    url = settings.sqlalchemy_database_url
     context.configure(
         url=url,
         target_metadata=target_metadata,

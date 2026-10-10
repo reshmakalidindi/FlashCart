@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../models/cart_item.dart';
 import '../utils/constants.dart';
 import 'price_text.dart';
+import 'product_thumbnail.dart';
 
 class CartItemCard extends StatelessWidget {
   final CartItem item;
@@ -33,30 +35,13 @@ class CartItemCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Product Image
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                width: 72,
-                height: 72,
-                color: AppColors.background,
-                child: Image.network(
-                  item.product.imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: AppColors.primaryLight,
-                      child: const Icon(
-                        Icons.shopping_bag_outlined,
-                        color: AppColors.primary,
-                        size: 32,
-                      ),
-                    );
-                  },
-                ),
-              ),
+            // Product Image / Category Thumbnail
+            ProductThumbnail(
+              product: item.product,
+              size: 74,
+              borderRadius: 12,
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 14),
             // Item Details (Product ID, Name, Unit Cost, Line Amount)
             Expanded(
               child: Column(
@@ -74,10 +59,10 @@ class CartItemCard extends StatelessWidget {
                         ),
                         child: Text(
                           'ID: ${item.product.id}',
-                          style: const TextStyle(
+                          style: GoogleFonts.inter(
                             fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primaryDark,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.primary,
                           ),
                         ),
                       ),
@@ -98,20 +83,21 @@ class CartItemCard extends StatelessWidget {
                   // Product Name
                   Text(
                     item.product.name,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
                       color: AppColors.textPrimary,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 3),
                   // Unit Cost & Weight
                   Text(
                     'Unit Cost: ₹${item.product.price.toStringAsFixed(2)} • ${item.product.weight}',
-                    style: const TextStyle(
-                      fontSize: 12,
+                    style: GoogleFonts.inter(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w400,
                       color: AppColors.textSecondary,
                     ),
                   ),
@@ -123,8 +109,8 @@ class CartItemCard extends StatelessWidget {
                       // Quantity Stepper
                       Container(
                         decoration: BoxDecoration(
-                          color: AppColors.background,
-                          borderRadius: BorderRadius.circular(8),
+                          color: const Color(0xFFF7F7F8),
+                          borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: AppColors.border),
                         ),
                         child: Row(
@@ -133,8 +119,8 @@ class CartItemCard extends StatelessWidget {
                             InkWell(
                               onTap: onDecrease,
                               borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(8),
-                                bottomLeft: Radius.circular(8),
+                                topLeft: Radius.circular(10),
+                                bottomLeft: Radius.circular(10),
                               ),
                               child: const Padding(
                                 padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -145,9 +131,9 @@ class CartItemCard extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(horizontal: 8),
                               child: Text(
                                 '${item.quantity}',
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
                                   color: AppColors.textPrimary,
                                 ),
                               ),
@@ -155,8 +141,8 @@ class CartItemCard extends StatelessWidget {
                             InkWell(
                               onTap: onIncrease,
                               borderRadius: const BorderRadius.only(
-                                topRight: Radius.circular(8),
-                                bottomRight: Radius.circular(8),
+                                topRight: Radius.circular(10),
+                                bottomRight: Radius.circular(10),
                               ),
                               child: const Padding(
                                 padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -170,16 +156,16 @@ class CartItemCard extends StatelessWidget {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          const Text(
-                            'Line Amount',
-                            style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                          Text(
+                            'Line Total',
+                            style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w400, color: AppColors.textSecondary),
                           ),
                           PriceText(
                             amount: lineAmount,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.primaryDark,
+                            style: GoogleFonts.inter(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
                             ),
                           ),
                         ],

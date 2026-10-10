@@ -6,6 +6,7 @@ import '../services/cart_service.dart';
 import '../utils/constants.dart';
 import '../widgets/price_text.dart';
 import '../widgets/primary_button.dart';
+import '../widgets/flash_cart_app_bar.dart';
 import 'payment_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -23,7 +24,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   void initState() {
     super.initState();
-    _performBackendPriceRevalidation();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _performBackendPriceRevalidation();
+      }
+    });
   }
 
   Future<void> _performBackendPriceRevalidation() async {
@@ -82,8 +87,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Order Summary & Checkout'),
+      appBar: const FlashCartAppBar(
+        titleText: 'Payment',
       ),
       body: _isRevalidating
           ? const Center(
@@ -121,7 +126,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             Icon(Icons.storefront_rounded, color: AppColors.primary),
                             SizedBox(width: 8),
                             Text(
-                              'D-Mart Supermarket #001 (Self-Checkout)',
+                              'FlashCart Self-Checkout',
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
@@ -136,98 +141,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                         ),
                       ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Order Summary Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Verified Items',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryLight,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          '${items.length} Unique Products (${cartProvider.itemCount} units)',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primaryDark,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Items List Snapshot
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: const BorderSide(color: AppColors.border),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        children: items.map((item) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 6),
-                            child: Row(
-                              children: [
-                                Text(
-                                  '${item.quantity}x',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.primary,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        item.product.name,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 14,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      Text(
-                                        '${item.product.weight} • ₹${item.product.price} each (GST ${item.product.taxPercentage.toStringAsFixed(0)}%)',
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          color: AppColors.textSecondary,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                PriceText(
-                                  amount: item.subtotal,
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                      ),
                     ),
                   ),
 
@@ -264,8 +177,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text('Discounts / Promo', style: TextStyle(color: AppColors.success)),
-                                Text('- ₹${discount.toStringAsFixed(2)}', style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.bold)),
+                                const Text('Discounts / Promo', style: TextStyle(color: AppColors.success, fontWeight: FontWeight.w400)),
+                                Text('- ₹${discount.toStringAsFixed(2)}', style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.w700)),
                               ],
                             ),
                           ],
@@ -277,14 +190,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 'TOTAL AMOUNT',
                                 style: TextStyle(
                                   fontSize: 16,
-                                  fontWeight: FontWeight.w900,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                               PriceText(
                                 amount: total,
                                 style: const TextStyle(
                                   fontSize: 22,
-                                  fontWeight: FontWeight.w900,
+                                  fontWeight: FontWeight.w700,
                                   color: AppColors.primary,
                                 ),
                               ),
@@ -302,7 +215,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     'Select Payment Mode',
                     style: TextStyle(
                       fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                       color: AppColors.textPrimary,
                     ),
                   ),
@@ -346,6 +259,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     label: 'Proceed to Payment (₹${total.toStringAsFixed(0)})',
                     icon: Icons.lock_outline,
                     onPressed: () {
+                      if (items.any((item) => item.product.price <= 0) || total <= 0) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('⚠️ Cannot proceed: Invalid item prices or zero total.'),
+                            backgroundColor: AppColors.error,
+                          ),
+                        );
+                        return;
+                      }
                       Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (_) => PaymentScreen(
@@ -399,7 +321,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           title,
                           style: TextStyle(
                             fontSize: 14,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w600,
                             color: isSelected ? AppColors.primary : AppColors.textPrimary,
                           ),
                         ),
@@ -407,15 +329,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: badge == 'DEV MOCK' ? AppColors.primaryLight : AppColors.accent.withValues(alpha: 0.2),
+                          color: badge == 'DEV MOCK' ? AppColors.primaryLight : AppColors.butterYellow,
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           badge,
                           style: TextStyle(
                             fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: badge == 'DEV MOCK' ? AppColors.primaryDark : Colors.amber[900],
+                            fontWeight: FontWeight.w500,
+                            color: badge == 'DEV MOCK' ? AppColors.primaryDark : AppColors.charcoal,
                           ),
                         ),
                       ),

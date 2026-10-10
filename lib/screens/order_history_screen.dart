@@ -5,6 +5,7 @@ import '../providers/auth_provider.dart';
 import '../services/order_service.dart';
 import '../utils/constants.dart';
 import '../widgets/price_text.dart';
+import '../widgets/flash_cart_app_bar.dart';
 import 'order_success_screen.dart';
 
 class OrderHistoryScreen extends StatefulWidget {
@@ -48,8 +49,8 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Order History'),
+      appBar: const FlashCartAppBar(
+        titleText: 'Order History',
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -77,7 +78,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                           'No Orders Found',
                           style: TextStyle(
                             fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -130,7 +131,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                                       'Order #${order.orderId}',
                                       style: const TextStyle(
                                         fontSize: 16,
-                                        fontWeight: FontWeight.bold,
+                                        fontWeight: FontWeight.w600,
                                         color: AppColors.textPrimary,
                                       ),
                                     ),
@@ -146,7 +147,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                                         order.exitVerified ? 'EXIT VERIFIED' : 'PAID (SHOW QR)',
                                         style: TextStyle(
                                           fontSize: 11,
-                                          fontWeight: FontWeight.bold,
+                                          fontWeight: FontWeight.w500,
                                           color: order.exitVerified
                                               ? AppColors.success
                                               : AppColors.info,
@@ -160,6 +161,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                                   'Date: ${order.createdAt.toString().substring(0, 16)} • ${order.items.length} Item(s)',
                                   style: const TextStyle(
                                     fontSize: 13,
+                                    fontWeight: FontWeight.w400,
                                     color: AppColors.textSecondary,
                                   ),
                                 ),
@@ -171,6 +173,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                                       'Total Amount Paid:',
                                       style: TextStyle(
                                         fontSize: 13,
+                                        fontWeight: FontWeight.w400,
                                         color: AppColors.textSecondary,
                                       ),
                                     ),
@@ -178,7 +181,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                                       amount: order.total,
                                       style: const TextStyle(
                                         fontSize: 18,
-                                        fontWeight: FontWeight.w900,
+                                        fontWeight: FontWeight.w700,
                                         color: AppColors.primary,
                                       ),
                                     ),

@@ -10,7 +10,7 @@ class Order(Base, TimestampMixin):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     order_id = Column(String(64), unique=True, index=True, nullable=False)
     user_id = Column(String(64), index=True, nullable=False)
-    store_id = Column(String(64), default="STORE_DMART_001", nullable=False)
+    store_id = Column(String(64), default="STORE_FLASHCART_001", nullable=False)
     status = Column(String(32), default="PENDING", nullable=False)  # PENDING, PAID, CANCELLED, COMPLETED
     payment_method = Column(String(32), default="MOCK_UPI", nullable=False)
     payment_status = Column(String(32), default="UNPAID", nullable=False)  # UNPAID, PAID, FAILED
@@ -30,3 +30,4 @@ class Order(Base, TimestampMixin):
     exit_token = Column(String(255), unique=True, index=True, nullable=True)
 
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
+    payments = relationship("PaymentRecord", back_populates="order", cascade="all, delete-orphan")

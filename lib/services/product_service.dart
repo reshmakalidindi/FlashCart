@@ -8,10 +8,30 @@ import 'api_config.dart';
 class ProductService {
   // In-memory fallback product catalog initialized from AppConstants
   final List<Product> _fallbackProducts = AppConstants.sampleProducts
-      .asMap()
-      .entries
-      .map((entry) => Product.fromMap(entry.value, 'prod_${entry.key + 1}'))
+      .map((item) => Product.fromMap(item, item['productId'] ?? ''))
       .toList();
+
+  // Fast in-memory cache indexed by barcode and ID for instant lookup
+  static final Map<String, Product> _productCache = {};
+
+  ProductService() {
+    _populateCacheWithFallback();
+  }
+
+  void _populateCacheWithFallback() {
+    for (final p in _fallbackProducts) {
+      _cacheProduct(p);
+    }
+  }
+
+  void _cacheProduct(Product product) {
+    _productCache[product.barcode] = product;
+    _productCache[product.id] = product;
+    final stripped = product.barcode.replaceAll('FLASHCART-', '');
+    _productCache[stripped] = product;
+    _productCache['FLASHCART-$stripped'] = product;
+    _productCache['FLASHCART-${product.id}'] = product;
+  }
 
   /// Fetches all active products from FastAPI backend: GET /api/v1/products/
   /// Falls back to offline catalog if backend is unreachable.
@@ -25,6 +45,9 @@ class ProductService {
         final List<dynamic> data = jsonDecode(response.body);
         final products = data.map((item) => Product.fromJson(item)).toList();
         if (products.isNotEmpty) {
+          for (final p in products) {
+            _cacheProduct(p);
+          }
           debugPrint('Loaded ${products.length} products from FastAPI backend.');
           return products;
         }
@@ -36,11 +59,28 @@ class ProductService {
   }
 
   /// Scans & looks up product by barcode from FastAPI: GET /api/v1/products/barcode/{barcode}
-  /// Falls back to offline catalog if backend is unreachable.
+  /// Uses instant memory cache first (< 1ms), then authoritative backend lookup.
   Future<Product?> getProductByBarcode(String rawBarcode) async {
     final barcode = rawBarcode.trim();
     if (barcode.isEmpty) return null;
 
+    final stripped = barcode.replaceAll('FLASHCART-', '');
+    final prefixed = barcode.startsWith('FLASHCART-') ? barcode : 'FLASHCART-$barcode';
+
+    // 1. Instant cache hit check (< 1 millisecond response time)
+    if (_productCache.containsKey(barcode)) return _productCache[barcode];
+    if (_productCache.containsKey(prefixed)) return _productCache[prefixed];
+    if (_productCache.containsKey(stripped)) return _productCache[stripped];
+
+    // Check fallback products
+    for (final p in _fallbackProducts) {
+      if (p.barcode == barcode || p.id == barcode || p.id == stripped || p.barcode == prefixed) {
+        _cacheProduct(p);
+        return p;
+      }
+    }
+
+    // 2. Network lookup via FastAPI backend
     try {
       final response = await http
           .get(Uri.parse('${ApiConfig.baseUrl}/products/barcode/$barcode'))
@@ -49,23 +89,17 @@ class ProductService {
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
         if (data['found'] == true && data['product'] != null) {
-          debugPrint('Product located via FastAPI backend: ${data['product']['name']}');
-          return Product.fromJson(data['product']);
+          final product = Product.fromJson(data['product']);
+          _cacheProduct(product);
+          debugPrint('Product located via FastAPI backend: ${product.name}');
+          return product;
         }
       }
     } catch (e) {
-      debugPrint('FastAPI barcode lookup error ($e), using local lookup.');
+      debugPrint('FastAPI barcode lookup error ($e), checking local fallback.');
     }
 
-    // Fallback to local memory catalog lookup
-    try {
-      final match = _fallbackProducts.firstWhere(
-        (p) => p.barcode == barcode,
-      );
-      return match;
-    } catch (_) {
-      return null;
-    }
+    return null;
   }
 
   /// Seeds sample products into the backend if required.

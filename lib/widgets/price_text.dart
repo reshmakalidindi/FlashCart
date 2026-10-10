@@ -23,7 +23,7 @@ class PriceText extends StatelessWidget {
     );
 
     final defaultStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w700,
           color: AppColors.primary,
         );
 

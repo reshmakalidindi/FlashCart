@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../utils/constants.dart';
-import 'scanner_screen.dart';
+import 'home_screen.dart';
 import 'intro_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -49,7 +49,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 400),
         pageBuilder: (context, animation, secondaryAnimation) =>
-            authProvider.isAuthenticated ? const ScannerScreen() : const IntroScreen(),
+            authProvider.isAuthenticated ? const HomeScreen() : const IntroScreen(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
         },
@@ -89,10 +89,13 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       ),
                     ],
                   ),
-                  child: const Icon(
-                    Icons.bolt_rounded,
-                    size: 68,
-                    color: AppColors.primary,
+                  padding: const EdgeInsets.all(12),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Image.asset(
+                      'assets/flashcart_logo.png',
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
               ),
@@ -101,7 +104,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 AppConstants.appName,
                 style: TextStyle(
                   fontSize: 36,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w700,
                   color: Colors.white,
                   letterSpacing: 0.5,
                 ),

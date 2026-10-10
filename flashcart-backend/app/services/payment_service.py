@@ -4,12 +4,17 @@ import uuid
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.models.order import Order
+from app.models.payment import PaymentRecord
 from app.schemas.order import MockPaymentRequest, MockPaymentResponse
 
 
 class PaymentService:
     @staticmethod
     def process_mock_payment(db: Session, payment_in: MockPaymentRequest) -> MockPaymentResponse:
+        """
+        Authorizes payment and stores authoritative PaymentRecord in MySQL,
+        marks Order as PAID, and generates the exit verification token.
+        """
         order = db.query(Order).filter(Order.order_id == payment_in.order_id).first()
         if not order:
             raise HTTPException(
@@ -30,7 +35,7 @@ class PaymentService:
         payment_id = f"PAY-MOCK-{int(time.time())}-{uuid.uuid4().hex[:6].upper()}"
         
         # Cryptographic exit pass token
-        token_seed = f"{order.order_id}:{order.grand_total}:{time.time()}:DMART_SECRET"
+        token_seed = f"{order.order_id}:{order.grand_total}:{time.time()}:FLASHCART_SECRET"
         sig = hashlib.sha256(token_seed.encode()).hexdigest()[:16]
         exit_token = f"EXIT_{order.order_id}_{sig}"
 
@@ -39,6 +44,20 @@ class PaymentService:
         order.payment_id = payment_id
         order.payment_method = payment_in.payment_method
         order.exit_token = exit_token
+
+        # Persist payment transaction record in MySQL payments table
+        payment_record = PaymentRecord(
+            payment_id=payment_id,
+            order_id=order.order_id,
+            user_id=order.user_id,
+            amount=order.grand_total,
+            currency="INR",
+            payment_method=payment_in.payment_method,
+            payment_status="SUCCESS",
+            exit_token=exit_token,
+            gateway_reference=f"GW_{uuid.uuid4().hex[:8].upper()}",
+        )
+        db.add(payment_record)
 
         db.commit()
         db.refresh(order)

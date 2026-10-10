@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
+import 'api_config.dart';
 
 enum PaymentMethod { mockUpi, mockCard, razorpay }
 
@@ -34,8 +35,11 @@ class MockPaymentGateway implements PaymentGateway {
     required String orderId,
   }) async {
     debugPrint('Processing payment of ₹$verifiedAmount for order $orderId...');
-    // Simulate real bank network processing delay
-    await Future.delayed(const Duration(seconds: 2));
+    // Simulate real bank network processing delay (instant in test environment)
+    final delay = ApiConfig.isTestEnvironment
+        ? const Duration(milliseconds: 50)
+        : const Duration(seconds: 2);
+    await Future.delayed(delay);
 
     // Generate realistic Payment ID
     final randomDigits = Random().nextInt(899999) + 100000;

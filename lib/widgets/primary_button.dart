@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../utils/constants.dart';
 
 class PrimaryButton extends StatelessWidget {
@@ -18,7 +19,7 @@ class PrimaryButton extends StatelessWidget {
     this.icon,
     this.isOutlined = false,
     this.color,
-    this.height = 54,
+    this.height = 52,
   });
 
   @override
@@ -29,27 +30,31 @@ class PrimaryButton extends StatelessWidget {
         style: OutlinedButton.styleFrom(
           minimumSize: Size(double.infinity, height),
           side: BorderSide(color: color ?? AppColors.primary, width: 1.5),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
         child: isLoading
             ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2.5),
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2.2),
               )
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (icon != null) ...[
-                    Icon(icon, size: 20, color: color ?? AppColors.primary),
+                    Icon(icon, size: 19, color: color ?? AppColors.primary),
                     const SizedBox(width: 8),
                   ],
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: color ?? AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                  Flexible(
+                    child: Text(
+                      label,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(
+                        color: color ?? AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
                     ),
                   ),
                 ],
@@ -62,13 +67,15 @@ class PrimaryButton extends StatelessWidget {
       style: ElevatedButton.styleFrom(
         minimumSize: Size(double.infinity, height),
         backgroundColor: color ?? AppColors.primary,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
       child: isLoading
           ? const SizedBox(
-              width: 24,
-              height: 24,
+              width: 22,
+              height: 22,
               child: CircularProgressIndicator(
-                strokeWidth: 2.5,
+                strokeWidth: 2.2,
                 valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
               ),
             )
@@ -77,15 +84,18 @@ class PrimaryButton extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (icon != null) ...[
-                  Icon(icon, size: 20, color: Colors.white),
+                  Icon(icon, size: 19, color: Colors.white),
                   const SizedBox(width: 8),
                 ],
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                Flexible(
+                  child: Text(
+                    label,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
                   ),
                 ),
               ],

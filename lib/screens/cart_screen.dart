@@ -6,6 +6,7 @@ import '../widgets/cart_item_card.dart';
 import '../widgets/empty_cart.dart';
 import '../widgets/price_text.dart';
 import '../widgets/primary_button.dart';
+import '../widgets/flash_cart_app_bar.dart';
 import 'checkout_screen.dart';
 import 'scanner_screen.dart';
 
@@ -50,8 +51,8 @@ class _CartScreenState extends State<CartScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text('Current Bill (${cartProvider.itemCount} items)'),
+      appBar: FlashCartAppBar(
+        titleText: 'Current Bill (${cartProvider.itemCount} items)',
         actions: [
           if (!cartProvider.isEmpty)
             IconButton(
@@ -92,22 +93,97 @@ class _CartScreenState extends State<CartScreen> {
               },
             )
           : Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Scanned Items List with line amount and quantity editing
-                Expanded(
-                  child: ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: cartProvider.items.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      final item = cartProvider.items[index];
-                      return CartItemCard(
-                        item: item,
-                        onIncrease: () => cartProvider.increaseQuantity(item.product.barcode),
-                        onDecrease: () => cartProvider.decreaseQuantity(item.product.barcode),
-                        onRemove: () => cartProvider.removeItem(item.product.barcode),
-                      );
-                    },
+                // Scanned Products Dedicated Card Container (Independently Scrollable)
+                Flexible(
+                  fit: FlexFit.loose,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppColors.border),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Card Header
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Row(
+                                    children: [
+                                      Icon(Icons.shopping_bag_outlined, color: AppColors.primary, size: 20),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Scanned Products',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.textPrimary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primaryLight,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      '${cartProvider.itemCount} items',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        color: AppColors.primaryDark,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Divider(height: 1, thickness: 1, color: AppColors.border),
+
+                            // Independently Scrollable List Inside Card
+                            Flexible(
+                              fit: FlexFit.loose,
+                              child: Scrollbar(
+                                child: ListView.separated(
+                                  shrinkWrap: true,
+                                  padding: const EdgeInsets.all(12),
+                                  itemCount: cartProvider.items.length,
+                                  separatorBuilder: (_, index) => const SizedBox(height: 6),
+                                  itemBuilder: (context, index) {
+                                    final item = cartProvider.items[index];
+                                    return CartItemCard(
+                                      item: item,
+                                      onIncrease: () => cartProvider.increaseQuantity(item.product.barcode),
+                                      onDecrease: () => cartProvider.decreaseQuantity(item.product.barcode),
+                                      onRemove: () => cartProvider.removeItem(item.product.barcode),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
 
@@ -167,7 +243,7 @@ class _CartScreenState extends State<CartScreen> {
                                 '🎉 Coupon Applied: ${cartProvider.appliedCouponCode}',
                                 style: const TextStyle(
                                   fontSize: 13,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w600,
                                   color: AppColors.success,
                                 ),
                               ),
@@ -190,7 +266,7 @@ class _CartScreenState extends State<CartScreen> {
                           const Text('Total Items Scanned', style: TextStyle(color: AppColors.textSecondary)),
                           Text(
                             '${cartProvider.itemCount} units',
-                            style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                            style: const TextStyle(fontWeight: FontWeight.w500, color: AppColors.textPrimary),
                           ),
                         ],
                       ),
@@ -203,7 +279,7 @@ class _CartScreenState extends State<CartScreen> {
                           const Text('Subtotal', style: TextStyle(color: AppColors.textSecondary)),
                           PriceText(
                             amount: cartProvider.subtotal,
-                            style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                            style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                           ),
                         ],
                       ),
@@ -216,7 +292,7 @@ class _CartScreenState extends State<CartScreen> {
                           const Text('Configured GST Taxes', style: TextStyle(color: AppColors.textSecondary)),
                           PriceText(
                             amount: cartProvider.tax,
-                            style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                            style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.textSecondary),
                           ),
                         ],
                       ),
@@ -227,10 +303,10 @@ class _CartScreenState extends State<CartScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('Coupon Discount', style: TextStyle(color: AppColors.success, fontWeight: FontWeight.bold)),
+                            const Text('Coupon Discount', style: TextStyle(color: AppColors.success, fontWeight: FontWeight.w500)),
                             Text(
                               '- ₹${cartProvider.discount.toStringAsFixed(2)}',
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.success),
+                              style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.success),
                             ),
                           ],
                         ),
@@ -252,7 +328,7 @@ class _CartScreenState extends State<CartScreen> {
                                 'Final Payable',
                                 style: TextStyle(
                                   fontSize: 16,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w600,
                                   color: AppColors.textPrimary,
                                 ),
                               ),
@@ -266,8 +342,8 @@ class _CartScreenState extends State<CartScreen> {
                             amount: cartProvider.total,
                             style: const TextStyle(
                               fontSize: 24,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.primaryDark,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
                             ),
                           ),
                         ],
@@ -297,6 +373,25 @@ class _CartScreenState extends State<CartScreen> {
                               onPressed: cartProvider.isEmpty
                                   ? null
                                   : () {
+                                      final hasInvalidPrice = cartProvider.items.any((item) => item.product.price <= 0);
+                                      if (hasInvalidPrice) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('⚠️ Cannot proceed: One or more scanned items have an invalid price.'),
+                                            backgroundColor: AppColors.error,
+                                          ),
+                                        );
+                                        return;
+                                      }
+                                      if (cartProvider.total <= 0) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('⚠️ Bill total must be greater than ₹0 to proceed.'),
+                                            backgroundColor: AppColors.error,
+                                          ),
+                                        );
+                                        return;
+                                      }
                                       Navigator.of(context).push(
                                         MaterialPageRoute(builder: (_) => const CheckoutScreen()),
                                       );

@@ -17,49 +17,50 @@ void main() {
       productService = ProductService();
 
       const testProduct = Product(
-        id: 'prod_8901234567890',
-        name: 'Amul Taaza Toned Milk',
-        barcode: '8901234567890',
-        price: 68.0,
-        weight: '1 L',
-        unit: 'L',
-        category: 'Dairy',
-        imageUrl: '',
-        description: 'Milk',
+        id: 'P001',
+        name: 'Maggi',
+        barcode: 'FLASHCART-P001',
+        price: 20.0,
+        weight: '70 g',
+        unit: 'g',
+        category: 'Instant Food',
+        imageUrl: 'assets/product_qrs/P001.png',
+        description: 'Maggi',
         stock: 100,
-        taxPercentage: 0.0,
+        taxPercentage: 5.0,
         isAvailable: true,
       );
 
       final item = CartItem(product: testProduct, quantity: 2);
 
+      final nowUs = DateTime.now().microsecondsSinceEpoch;
       samplePaidOrder = OrderModel(
-        orderId: 'FC_TEST_999901',
+        orderId: 'FC_PAID_$nowUs',
         userId: 'user_123',
         userName: 'Customer Test',
         userEmail: 'customer@test.com',
         items: [item],
-        subtotal: 136.0,
-        tax: 0.0,
+        subtotal: 40.0,
+        tax: 2.0,
         discount: 0.0,
-        total: 136.0,
+        total: 42.0,
         paymentStatus: 'paid',
-        paymentId: 'PAY_FC_TEST_01',
+        paymentId: 'PAY_FC_$nowUs',
         orderStatus: 'paid',
         createdAt: DateTime.now(),
         exitVerified: false,
       );
 
       sampleUnpaidOrder = OrderModel(
-        orderId: 'FC_TEST_999902',
+        orderId: 'FC_UNP_$nowUs',
         userId: 'user_123',
         userName: 'Customer Test',
         userEmail: 'customer@test.com',
         items: [item],
-        subtotal: 136.0,
-        tax: 0.0,
+        subtotal: 40.0,
+        tax: 2.0,
         discount: 0.0,
-        total: 136.0,
+        total: 42.0,
         paymentStatus: 'pending',
         paymentId: '',
         orderStatus: 'created',
@@ -77,10 +78,10 @@ void main() {
     });
 
     test('2. Known product barcode returns matching Product', () async {
-      final product = await productService.getProductByBarcode('8901234567890');
+      final product = await productService.getProductByBarcode('FLASHCART-P001');
       expect(product, isNotNull);
-      expect(product!.name, contains('Amul Taaza'));
-      expect(product.price, equals(68.0));
+      expect(product!.name, contains('Maggi'));
+      expect(product.price, equals(20.0));
     });
 
     test('3. Verification on non-existent order returns INVALID ORDER', () async {
@@ -120,7 +121,8 @@ void main() {
     });
 
     test('6. Re-scanning an already-verified order rejects exit with ALREADY VERIFIED', () async {
-      final duplicateOrder = samplePaidOrder.copyWith(orderId: 'FC_TEST_DUP_001');
+      final dupId = 'FC_TEST_DUP_${DateTime.now().millisecondsSinceEpoch}';
+      final duplicateOrder = samplePaidOrder.copyWith(orderId: dupId);
       await orderService.createOrder(duplicateOrder);
 
       // First verification succeeds

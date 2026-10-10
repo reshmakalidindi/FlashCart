@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../utils/constants.dart';
 import '../utils/validators.dart';
 import '../widgets/primary_button.dart';
-import 'scanner_screen.dart';
+import 'home_screen.dart';
 import 'staff_scanner_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -67,7 +68,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         );
       } else {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const ScannerScreen()),
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
         );
       }
     } else if (mounted && authProvider.errorMessage != null) {
@@ -98,7 +99,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         );
       } else {
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const ScannerScreen()),
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
         );
       }
     } else if (mounted && authProvider.errorMessage != null) {
@@ -111,6 +112,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     }
   }
 
+  int _selectedTabIndex = 0;
+
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
@@ -118,241 +121,339 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 20),
-              // Header Brand
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(Icons.bolt, color: Colors.white, size: 28),
-                  ),
-                  const SizedBox(width: 12),
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        AppConstants.appName,
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      Text(
-                        AppConstants.appTagline,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textSecondary,
-                        ),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Clean White Authentication Card Container
+                Container(
+                  width: double.infinity,
+                  constraints: const BoxConstraints(maxWidth: 440),
+                  padding: const EdgeInsets.all(28.0),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: AppColors.border),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
                       ),
                     ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 32),
-
-              // Staff Mode Toggle Banner
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: _isStaffMode ? AppColors.accent.withValues(alpha: 0.15) : AppColors.primaryLight,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: _isStaffMode ? AppColors.accent : AppColors.primary.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      _isStaffMode ? Icons.verified_user : Icons.shopping_basket_outlined,
-                      color: _isStaffMode ? Colors.amber[900] : AppColors.primary,
-                      size: 22,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        _isStaffMode ? 'Role: Store Staff / Cashier' : 'Role: Customer Self-Checkout',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: _isStaffMode ? Colors.amber[900] : AppColors.primaryDark,
+                  child: Column(
+                    children: [
+                      // Centered FlashCart Logo
+                      Container(
+                        width: 68,
+                        height: 68,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: AppColors.border),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.06),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(8),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.asset(
+                            'assets/flashcart_logo.png',
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ),
-                    ),
-                    Switch(
-                      value: _isStaffMode,
-                      activeThumbColor: AppColors.accent,
-                      onChanged: (val) {
-                        setState(() {
-                          _isStaffMode = val;
-                          if (val) {
-                            _loginEmailController.text = 'staff@flashcart.com';
-                          } else {
-                            _loginEmailController.text = 'customer@flashcart.com';
-                          }
-                        });
-                      },
-                    ),
-                  ],
-                ),
-              ),
+                      const SizedBox(height: 14),
 
-              const SizedBox(height: 24),
-
-              // Tabs
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: TabBar(
-                  controller: _tabController,
-                  indicatorColor: AppColors.primary,
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  indicatorWeight: 3,
-                  labelColor: AppColors.primary,
-                  unselectedLabelColor: AppColors.textSecondary,
-                  labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                  tabs: const [
-                    Tab(text: 'Login'),
-                    Tab(text: 'Create Account'),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Tab Views Container
-              SizedBox(
-                height: 380,
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    // Login Form
-                    Form(
-                      key: _loginFormKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          TextFormField(
-                            controller: _loginEmailController,
-                            keyboardType: TextInputType.emailAddress,
-                            validator: Validators.validateEmail,
-                            decoration: const InputDecoration(
-                              labelText: 'Email Address',
-                              prefixIcon: Icon(Icons.email_outlined),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _loginPasswordController,
-                            obscureText: _obscurePassword,
-                            validator: Validators.validatePassword,
-                            decoration: InputDecoration(
-                              labelText: 'Password',
-                              prefixIcon: const Icon(Icons.lock_outline),
-                              suffixIcon: IconButton(
-                                icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          PrimaryButton(
-                            label: _isStaffMode ? 'Login as Staff' : 'Login & Start Shopping',
-                            isLoading: authProvider.isLoading,
-                            icon: Icons.login,
-                            onPressed: _handleLogin,
-                          ),
-                          const SizedBox(height: 12),
-                          Center(
-                            child: TextButton(
-                              onPressed: () {
-                                _loginEmailController.text = 'customer@flashcart.com';
-                                _loginPasswordController.text = 'password123';
-                                _handleLogin();
-                              },
-                              child: const Text('Quick Demo Login (Auto-fill)'),
-                            ),
-                          ),
-                        ],
+                      // Welcome Header
+                      Text(
+                        AppConstants.appName,
+                        style: GoogleFonts.inter(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                          letterSpacing: 0.5,
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 4),
+                      Text(
+                        AppConstants.appTagline,
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
 
-                    // Register Form
-                    Form(
-                      key: _registerFormKey,
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                      const SizedBox(height: 24),
+
+                      // Segmented Pill Toggle between Login and Sign Up
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: AppColors.warmCream,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Row(
                           children: [
-                            TextFormField(
-                              controller: _regNameController,
-                              validator: Validators.validateName,
-                              decoration: const InputDecoration(
-                                labelText: 'Full Name',
-                                prefixIcon: Icon(Icons.person_outline),
+                            Expanded(
+                              child: InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    _selectedTabIndex = 0;
+                                    _tabController.animateTo(0);
+                                  });
+                                },
+                                borderRadius: BorderRadius.circular(10),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: _selectedTabIndex == 0 ? Colors.white : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(10),
+                                    boxShadow: _selectedTabIndex == 0
+                                        ? [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(alpha: 0.05),
+                                              blurRadius: 6,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ]
+                                        : null,
+                                  ),
+                                  child: Text(
+                                    'Login',
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.inter(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13.5,
+                                      color: _selectedTabIndex == 0 ? AppColors.leafGreen : AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
-                            const SizedBox(height: 12),
-                            TextFormField(
-                              controller: _regEmailController,
-                              keyboardType: TextInputType.emailAddress,
-                              validator: Validators.validateEmail,
-                              decoration: const InputDecoration(
-                                labelText: 'Email Address',
-                                prefixIcon: Icon(Icons.email_outlined),
+                            Expanded(
+                              child: InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    _selectedTabIndex = 1;
+                                    _tabController.animateTo(1);
+                                  });
+                                },
+                                borderRadius: BorderRadius.circular(10),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: _selectedTabIndex == 1 ? Colors.white : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(10),
+                                    boxShadow: _selectedTabIndex == 1
+                                        ? [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(alpha: 0.05),
+                                              blurRadius: 6,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ]
+                                        : null,
+                                  ),
+                                  child: Text(
+                                    'Sign Up',
+                                    textAlign: TextAlign.center,
+                                    style: GoogleFonts.inter(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13.5,
+                                      color: _selectedTabIndex == 1 ? AppColors.leafGreen : AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 12),
-                            TextFormField(
-                              controller: _regPasswordController,
-                              obscureText: _obscurePassword,
-                              validator: Validators.validatePassword,
-                              decoration: const InputDecoration(
-                                labelText: 'Password',
-                                prefixIcon: Icon(Icons.lock_outline),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            TextFormField(
-                              controller: _regConfirmPasswordController,
-                              obscureText: _obscurePassword,
-                              validator: (val) => Validators.validateConfirmPassword(
-                                _regPasswordController.text,
-                                val,
-                              ),
-                              decoration: const InputDecoration(
-                                labelText: 'Confirm Password',
-                                prefixIcon: Icon(Icons.lock_reset),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            PrimaryButton(
-                              label: 'Create Account',
-                              isLoading: authProvider.isLoading,
-                              icon: Icons.person_add_alt_1,
-                              onPressed: _handleRegister,
                             ),
                           ],
                         ),
                       ),
-                    ),
-                  ],
+
+                      const SizedBox(height: 24),
+
+                      // Tab Forms
+                      if (_selectedTabIndex == 0) ...[
+                        // Login Form
+                        Form(
+                          key: _loginFormKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              TextFormField(
+                                controller: _loginEmailController,
+                                keyboardType: TextInputType.emailAddress,
+                                validator: Validators.validateEmail,
+                                decoration: const InputDecoration(
+                                  labelText: 'Email Address',
+                                  hintText: 'shopper@example.com',
+                                  prefixIcon: Icon(Icons.email_outlined),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              TextFormField(
+                                controller: _loginPasswordController,
+                                obscureText: _obscurePassword,
+                                validator: Validators.validatePassword,
+                                decoration: InputDecoration(
+                                  labelText: 'Password',
+                                  prefixIcon: const Icon(Icons.lock_outline),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              PrimaryButton(
+                                label: _isStaffMode ? 'Login as Staff' : 'Login',
+                                isLoading: authProvider.isLoading,
+                                icon: Icons.login_rounded,
+                                onPressed: _handleLogin,
+                              ),
+                              const SizedBox(height: 12),
+                              Center(
+                                child: TextButton(
+                                  onPressed: () {
+                                    _loginEmailController.text = _isStaffMode ? 'staff@flashcart.com' : 'customer@flashcart.com';
+                                    _loginPasswordController.text = 'password123';
+                                    _handleLogin();
+                                  },
+                                  child: const Text('Quick Demo Login (Auto-fill)'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ] else ...[
+                        // Sign Up Form
+                        Form(
+                          key: _registerFormKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              TextFormField(
+                                controller: _regNameController,
+                                validator: Validators.validateName,
+                                decoration: const InputDecoration(
+                                  labelText: 'Full Name',
+                                  hintText: 'e.g. Lucas Matias',
+                                  prefixIcon: Icon(Icons.person_outline),
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              TextFormField(
+                                controller: _regEmailController,
+                                keyboardType: TextInputType.emailAddress,
+                                validator: Validators.validateEmail,
+                                decoration: const InputDecoration(
+                                  labelText: 'Email Address',
+                                  hintText: 'lucas@email.com',
+                                  prefixIcon: Icon(Icons.email_outlined),
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              TextFormField(
+                                controller: _regPasswordController,
+                                obscureText: _obscurePassword,
+                                validator: Validators.validatePassword,
+                                decoration: InputDecoration(
+                                  labelText: 'Password',
+                                  prefixIcon: const Icon(Icons.lock_outline),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              TextFormField(
+                                controller: _regConfirmPasswordController,
+                                obscureText: _obscurePassword,
+                                validator: (val) => Validators.validateConfirmPassword(
+                                  _regPasswordController.text,
+                                  val,
+                                ),
+                                decoration: const InputDecoration(
+                                  labelText: 'Confirm Password',
+                                  prefixIcon: Icon(Icons.lock_reset),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              PrimaryButton(
+                                label: 'Create Account',
+                                isLoading: authProvider.isLoading,
+                                icon: Icons.person_add_alt_1_rounded,
+                                onPressed: _handleRegister,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 20),
+
+                // Staff Role Toggle Container
+                Container(
+                  constraints: const BoxConstraints(maxWidth: 440),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _isStaffMode ? Icons.verified_user : Icons.shopping_bag_outlined,
+                        color: _isStaffMode ? AppColors.primary : AppColors.textSecondary,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _isStaffMode ? 'Role: Store Staff / Cashier' : 'Role: Customer Self-Checkout',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: _isStaffMode ? AppColors.primary : AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      Switch(
+                        value: _isStaffMode,
+                        activeThumbColor: AppColors.primary,
+                        activeTrackColor: AppColors.primaryLight,
+                        onChanged: (val) {
+                          setState(() {
+                            _isStaffMode = val;
+                            if (val) {
+                              _loginEmailController.text = 'staff@flashcart.com';
+                            } else {
+                              _loginEmailController.text = 'customer@flashcart.com';
+                            }
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

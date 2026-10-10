@@ -47,16 +47,30 @@ class OrderModel {
         .map((e) => CartItem.fromMap(Map<String, dynamic>.from(e as Map)))
         .toList();
 
+    double computedSubtotal = (map['subtotal'] as num?)?.toDouble() ?? 0.0;
+    if (computedSubtotal <= 0.0 && items.isNotEmpty) {
+      computedSubtotal = items.fold(0.0, (sum, i) => sum + i.subtotal);
+    }
+    double computedTax = (map['tax'] ?? map['tax_amount'] as num?)?.toDouble() ?? 0.0;
+    if (computedTax <= 0.0 && items.isNotEmpty) {
+      computedTax = items.fold(0.0, (sum, i) => sum + i.taxAmount);
+    }
+    final discount = (map['discount'] ?? map['discount_amount'] as num?)?.toDouble() ?? 0.0;
+    double computedTotal = (map['total'] ?? map['grand_total'] as num?)?.toDouble() ?? 0.0;
+    if (computedTotal <= 0.0 && items.isNotEmpty) {
+      computedTotal = (computedSubtotal + computedTax - discount).clamp(0.0, double.infinity);
+    }
+
     return OrderModel(
       orderId: docId.isNotEmpty ? docId : (map['order_id'] ?? map['orderId'] ?? ''),
       userId: map['userId'] ?? map['user_id'] ?? '',
       userName: map['userName'] ?? map['user_name'] ?? 'Customer',
       userEmail: map['userEmail'] ?? map['user_email'] ?? '',
       items: items,
-      subtotal: (map['subtotal'] as num?)?.toDouble() ?? 0.0,
-      tax: (map['tax'] ?? map['tax_amount'] as num?)?.toDouble() ?? 0.0,
-      discount: (map['discount'] ?? map['discount_amount'] as num?)?.toDouble() ?? 0.0,
-      total: (map['total'] ?? map['grand_total'] as num?)?.toDouble() ?? 0.0,
+      subtotal: double.parse(computedSubtotal.toStringAsFixed(2)),
+      tax: double.parse(computedTax.toStringAsFixed(2)),
+      discount: double.parse(discount.toStringAsFixed(2)),
+      total: double.parse(computedTotal.toStringAsFixed(2)),
       paymentStatus: (map['paymentStatus'] ?? map['payment_status'] ?? 'pending').toString().toLowerCase(),
       paymentId: map['paymentId'] ?? map['payment_id'] ?? '',
       paymentMethod: map['paymentMethod'] ?? map['payment_method'] ?? 'UPI / Online Payment',

@@ -46,19 +46,11 @@ class ProductProvider with ChangeNotifier {
   }
 
   Future<Product?> scanProductBarcode(String barcode) async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
-
     try {
       final product = await _productService.getProductByBarcode(barcode);
-      _isLoading = false;
-      notifyListeners();
       return product;
     } catch (e) {
       _errorMessage = 'Error scanning barcode: $e';
-      _isLoading = false;
-      notifyListeners();
       return null;
     }
   }

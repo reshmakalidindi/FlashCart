@@ -4,7 +4,7 @@ import '../providers/auth_provider.dart';
 import '../utils/constants.dart';
 import '../widgets/primary_button.dart';
 import 'login_screen.dart';
-import 'scanner_screen.dart';
+import 'home_screen.dart';
 
 class IntroScreen extends StatelessWidget {
   const IntroScreen({super.key});
@@ -17,7 +17,7 @@ class IntroScreen extends StatelessWidget {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) =>
-              authProvider.isAuthenticated ? const ScannerScreen() : const LoginScreen(),
+              authProvider.isAuthenticated ? const HomeScreen() : const LoginScreen(),
         ),
       );
     }
@@ -34,13 +34,14 @@ class IntroScreen extends StatelessWidget {
               // Brand Header
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(14),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.asset(
+                      'assets/flashcart_logo.png',
+                      width: 44,
+                      height: 44,
+                      fit: BoxFit.contain,
                     ),
-                    child: const Icon(Icons.bolt, color: Colors.white, size: 28),
                   ),
                   const SizedBox(width: 12),
                   const Column(
@@ -50,7 +51,7 @@ class IntroScreen extends StatelessWidget {
                         AppConstants.appName,
                         style: TextStyle(
                           fontSize: 24,
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary,
                         ),
                       ),
@@ -58,7 +59,7 @@ class IntroScreen extends StatelessWidget {
                         AppConstants.appTagline,
                         style: TextStyle(
                           fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w500,
                           color: AppColors.primary,
                         ),
                       ),
@@ -71,10 +72,10 @@ class IntroScreen extends StatelessWidget {
 
               // Title
               const Text(
-                'Say Goodbye to\nSupermarket Queues',
+                'Say Bye 👋 to\nSupermarket Queues',
                 style: TextStyle(
                   fontSize: 28,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w700,
                   height: 1.2,
                   color: AppColors.textPrimary,
                 ),
@@ -181,7 +182,7 @@ class IntroScreen extends StatelessWidget {
                       'STEP $stepNumber: ',
                       style: const TextStyle(
                         fontSize: 11,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w500,
                         color: AppColors.primary,
                         letterSpacing: 1,
                       ),
@@ -190,7 +191,7 @@ class IntroScreen extends StatelessWidget {
                       title,
                       style: const TextStyle(
                         fontSize: 15,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
                         color: AppColors.textPrimary,
                       ),
                     ),

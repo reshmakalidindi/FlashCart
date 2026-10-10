@@ -36,8 +36,8 @@ class ApiConfig {
     }
   }
 
-  /// In unit tests, fail network quickly so offline test mocks are instant.
+  /// In unit tests, use 2s timeout so local backend calls succeed reliably.
   /// In live app, use generous 5s timeout.
   static Duration get timeout => 
-      isTestEnvironment ? const Duration(milliseconds: 50) : const Duration(seconds: 5);
+      isTestEnvironment ? const Duration(seconds: 2) : const Duration(seconds: 5);
 }

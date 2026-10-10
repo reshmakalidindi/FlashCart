@@ -1,3 +1,5 @@
+import '../utils/constants.dart';
+
 class Product {
   final String id;
   final String name;
@@ -32,11 +34,21 @@ class Product {
   });
 
   factory Product.fromMap(Map<String, dynamic> map, String docId) {
+    final effectiveId = docId.isNotEmpty
+        ? docId
+        : (map['productId'] ?? map['product_id'] ?? map['id']?.toString() ?? '');
+    final barcode = (map['barcode'] ?? '').toString();
+    final parsedPrice = (map['price'] ?? map['unit_price'] ?? map['unitCost'] ?? map['unit_cost']);
+    final rawPrice = parsedPrice is num ? parsedPrice.toDouble() : (double.tryParse(parsedPrice?.toString() ?? '') ?? 0.0);
+    final price = rawPrice > 0
+        ? rawPrice
+        : AppConstants.getAuthoritativePrice(effectiveId.isNotEmpty ? effectiveId : barcode, rawPrice);
+
     return Product(
-      id: docId,
+      id: effectiveId,
       name: map['name'] ?? '',
-      barcode: map['barcode'] ?? '',
-      price: (map['price'] as num?)?.toDouble() ?? 0.0,
+      barcode: barcode,
+      price: price,
       weight: map['weight'] ?? '',
       unit: map['unit'] ?? '',
       category: map['category'] ?? 'General',
@@ -54,11 +66,19 @@ class Product {
   factory Product.fromJson(Map<String, dynamic> json) {
     final taxRate = (json['tax_rate'] as num?)?.toDouble() ?? 
         (((json['taxPercentage'] as num?)?.toDouble() ?? 0.0) / 100.0);
+    final id = (json['product_id'] ?? json['id']?.toString() ?? '');
+    final barcode = (json['barcode'] ?? '').toString();
+    final parsedPrice = (json['price'] ?? json['unit_price'] ?? json['unitCost'] ?? json['unit_cost']);
+    final rawPrice = parsedPrice is num ? parsedPrice.toDouble() : (double.tryParse(parsedPrice?.toString() ?? '') ?? 0.0);
+    final price = rawPrice > 0
+        ? rawPrice
+        : AppConstants.getAuthoritativePrice(id.isNotEmpty ? id : barcode, rawPrice);
+
     return Product(
-      id: (json['product_id'] ?? json['id']?.toString() ?? ''),
+      id: id,
       name: json['name'] ?? '',
-      barcode: json['barcode'] ?? '',
-      price: (json['price'] as num?)?.toDouble() ?? 0.0,
+      barcode: barcode,
+      price: price,
       weight: json['weight'] ?? '',
       unit: json['unit'] ?? '',
       category: json['category'] ?? 'General',

@@ -1,50 +1,61 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
 import '../models/product.dart';
-import '../providers/auth_provider.dart';
 import '../providers/cart_provider.dart';
 import '../providers/product_provider.dart';
 import '../utils/constants.dart';
 import '../widgets/price_text.dart';
 import 'cart_screen.dart';
-import 'login_screen.dart';
+import 'qr_testing_screen.dart';
 
 class ScannerScreen extends StatefulWidget {
   final Product? autoSelectProduct;
 
+  final bool isActive;
+  final bool showAppBar;
+
   const ScannerScreen({
     super.key,
     this.autoSelectProduct,
+    this.isActive = true,
+    this.showAppBar = true,
   });
 
   @override
   State<ScannerScreen> createState() => _ScannerScreenState();
 }
 
-class _ScannerScreenState extends State<ScannerScreen> {
-  final MobileScannerController _scannerController = MobileScannerController(
-    detectionSpeed: DetectionSpeed.normal,
-    facing: CameraFacing.back,
-    formats: const [
-      BarcodeFormat.ean13,
-      BarcodeFormat.ean8,
-      BarcodeFormat.upcA,
-      BarcodeFormat.upcE,
-      BarcodeFormat.code128,
-      BarcodeFormat.qrCode,
-    ],
-  );
+class _ScannerScreenState extends State<ScannerScreen> with WidgetsBindingObserver {
+  late final MobileScannerController _scannerController;
 
   final TextEditingController _manualBarcodeController = TextEditingController();
   bool _isProcessingScan = false;
   bool _torchOn = false;
   Product? _lastAddedProduct;
   int _lastAddedQuantity = 1;
+  Timer? _feedbackTimer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _scannerController = MobileScannerController(
+      autoStart: widget.isActive,
+      detectionSpeed: DetectionSpeed.noDuplicates,
+      facing: CameraFacing.back,
+      returnImage: false,
+      formats: const [
+        BarcodeFormat.qrCode,
+        BarcodeFormat.ean13,
+        BarcodeFormat.ean8,
+        BarcodeFormat.upcA,
+        BarcodeFormat.upcE,
+        BarcodeFormat.code128,
+      ],
+    );
+
     if (widget.autoSelectProduct != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _addProductDirectly(widget.autoSelectProduct!);
@@ -53,7 +64,31 @@ class _ScannerScreenState extends State<ScannerScreen> {
   }
 
   @override
+  void didUpdateWidget(covariant ScannerScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isActive != widget.isActive) {
+      if (widget.isActive) {
+        _scannerController.start();
+      } else {
+        _scannerController.stop();
+      }
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!widget.isActive) return;
+    if (state == AppLifecycleState.resumed) {
+      _scannerController.start();
+    } else if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
+      _scannerController.stop();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _feedbackTimer?.cancel();
     _scannerController.dispose();
     _manualBarcodeController.dispose();
     super.dispose();
@@ -117,7 +152,15 @@ class _ScannerScreenState extends State<ScannerScreen> {
       _lastAddedQuantity = cartItem.quantity;
     });
 
-    // Short success notification
+    // Auto-dismiss the scanned product feedback after 2.5 seconds to allow continuous scanning
+    _feedbackTimer?.cancel();
+    _feedbackTimer = Timer(const Duration(milliseconds: 2500), () {
+      if (mounted) {
+        setState(() => _lastAddedProduct = null);
+      }
+    });
+
+    // Short prompt success notification with name, price and quantity
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -127,7 +170,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Added ${product.name} (Qty: ${cartItem.quantity})',
+                'Added ${product.name} (₹${product.price.toStringAsFixed(0)}) • Qty: ${cartItem.quantity}',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
@@ -214,9 +257,24 @@ class _ScannerScreenState extends State<ScannerScreen> {
               },
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Or pick a sample supermarket product to test:',
-              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Or pick an authoritative test product:',
+                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                ),
+                TextButton.icon(
+                  icon: const Icon(Icons.qr_code_2, size: 16),
+                  label: const Text('QR Test Bench', style: TextStyle(fontSize: 12)),
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const QrTestingScreen()),
+                    );
+                  },
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             Wrap(
@@ -224,43 +282,83 @@ class _ScannerScreenState extends State<ScannerScreen> {
               runSpacing: 8,
               children: [
                 ActionChip(
-                  avatar: const Icon(Icons.local_drink, size: 16, color: AppColors.primary),
-                  label: const Text('Amul Milk (₹68)'),
+                  avatar: const Text('P001', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                  label: const Text('Maggi (₹20)'),
                   onPressed: () {
                     Navigator.of(ctx).pop();
-                    _handleBarcode('8901234567890');
+                    _handleBarcode('FLASHCART-P001');
                   },
                 ),
                 ActionChip(
-                  avatar: const Icon(Icons.cookie, size: 16, color: AppColors.primary),
-                  label: const Text('Parle-G (₹20)'),
+                  avatar: const Text('P002', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                  label: const Text('Biscuits (₹15)'),
                   onPressed: () {
                     Navigator.of(ctx).pop();
-                    _handleBarcode('8901234567891');
+                    _handleBarcode('FLASHCART-P002');
                   },
                 ),
                 ActionChip(
-                  avatar: const Icon(Icons.soap, size: 16, color: AppColors.primary),
-                  label: const Text('Dove Soap (₹55)'),
+                  avatar: const Text('P003', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                  label: const Text('Surf Excel (₹70)'),
                   onPressed: () {
                     Navigator.of(ctx).pop();
-                    _handleBarcode('8901234567892');
+                    _handleBarcode('FLASHCART-P003');
                   },
                 ),
                 ActionChip(
-                  avatar: const Icon(Icons.local_grocery_store, size: 16, color: AppColors.primary),
-                  label: const Text('Tata Salt (₹28)'),
+                  avatar: const Text('P004', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                  label: const Text('Stationery (₹200)'),
                   onPressed: () {
                     Navigator.of(ctx).pop();
-                    _handleBarcode('8901234567894');
+                    _handleBarcode('FLASHCART-P004');
                   },
                 ),
                 ActionChip(
-                  avatar: const Icon(Icons.ramen_dining, size: 16, color: AppColors.primary),
-                  label: const Text('Maggi (₹56)'),
+                  avatar: const Text('P005', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                  label: const Text('College bag (₹699)'),
                   onPressed: () {
                     Navigator.of(ctx).pop();
-                    _handleBarcode('8901234567896');
+                    _handleBarcode('FLASHCART-P005');
+                  },
+                ),
+                ActionChip(
+                  avatar: const Text('P006', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                  label: const Text('Water bottle (₹288)'),
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    _handleBarcode('FLASHCART-P006');
+                  },
+                ),
+                ActionChip(
+                  avatar: const Text('P007', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                  label: const Text('Sonpapidi (₹154)'),
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    _handleBarcode('FLASHCART-P007');
+                  },
+                ),
+                ActionChip(
+                  avatar: const Text('P008', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                  label: const Text('Paneer (₹299)'),
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    _handleBarcode('FLASHCART-P008');
+                  },
+                ),
+                ActionChip(
+                  avatar: const Text('P009', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                  label: const Text('Cool drinks (₹40)'),
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    _handleBarcode('FLASHCART-P009');
+                  },
+                ),
+                ActionChip(
+                  avatar: const Text('P0010', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold)),
+                  label: const Text('Lays packet (₹50)'),
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    _handleBarcode('FLASHCART-P0010');
                   },
                 ),
               ],
@@ -274,112 +372,150 @@ class _ScannerScreenState extends State<ScannerScreen> {
   @override
   Widget build(BuildContext context) {
     final cartProvider = Provider.of<CartProvider>(context);
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        title: const Text('Scan Products'),
-        actions: [
-          // Torch toggle
-          IconButton(
-            icon: Icon(_torchOn ? Icons.flash_on : Icons.flash_off),
-            tooltip: 'Torch',
-            onPressed: () {
-              _scannerController.toggleTorch();
-              setState(() => _torchOn = !_torchOn);
-            },
-          ),
-          // Manual barcode input
-          IconButton(
-            icon: const Icon(Icons.keyboard_alt_outlined),
-            tooltip: 'Enter Barcode Manually',
-            onPressed: _showManualBarcodeSheet,
-          ),
-          // Cart Icon with Badge
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.shopping_cart_outlined),
-                tooltip: 'View Current Bill',
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const CartScreen()),
-                  );
-                },
-              ),
-              if (cartProvider.itemCount > 0)
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: AppColors.accent,
-                      shape: BoxShape.circle,
-                    ),
-                    constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                    child: Text(
-                      '${cartProvider.itemCount}',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
+      appBar: widget.showAppBar
+          ? AppBar(
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
+              title: const Text('Scan Products'),
+              actions: [
+                // QR Test Bench screen shortcut
+                IconButton(
+                  icon: const Icon(Icons.qr_code_2),
+                  tooltip: 'QR Test Bench',
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const QrTestingScreen()),
+                    );
+                  },
                 ),
-            ],
-          ),
-          // Logout menu
-          IconButton(
-            icon: const Icon(Icons.logout_outlined),
-            tooltip: 'Logout',
-            onPressed: () async {
-              await authProvider.logout();
-              if (context.mounted) {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                );
-              }
-            },
-          ),
-        ],
-      ),
+                // Torch toggle
+                IconButton(
+                  icon: Icon(_torchOn ? Icons.flash_on : Icons.flash_off),
+                  tooltip: 'Torch',
+                  onPressed: () {
+                    _scannerController.toggleTorch();
+                    setState(() => _torchOn = !_torchOn);
+                  },
+                ),
+                // Manual barcode input
+                IconButton(
+                  icon: const Icon(Icons.keyboard_alt_outlined),
+                  tooltip: 'Enter Barcode Manually',
+                  onPressed: _showManualBarcodeSheet,
+                ),
+                // Cart Icon with Badge
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.shopping_cart_outlined),
+                      tooltip: 'View Current Bill',
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const CartScreen()),
+                        );
+                      },
+                    ),
+                    if (cartProvider.itemCount > 0)
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: AppColors.accent,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                          child: Text(
+                            '${cartProvider.itemCount}',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            )
+          : null,
       body: Stack(
         children: [
           // Live Camera Scanner
           MobileScanner(
             controller: _scannerController,
             errorBuilder: (context, error, child) {
+              final isPermissionDenied = error.errorCode == MobileScannerErrorCode.permissionDenied;
               return Center(
                 child: Padding(
                   padding: const EdgeInsets.all(28.0),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.no_photography_outlined, size: 64, color: Colors.white54),
+                      Icon(
+                        isPermissionDenied ? Icons.lock_outline_rounded : Icons.no_photography_outlined,
+                        size: 64,
+                        color: Colors.white70,
+                      ),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Camera Unavailable or Permission Denied',
+                      Text(
+                        isPermissionDenied ? 'Camera Permission Required' : 'Camera Unavailable',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                        style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        'You can still shop by entering product barcodes manually.',
+                      Text(
+                        isPermissionDenied
+                            ? 'Please allow camera permission so FlashCart can scan barcodes from product shelves.'
+                            : 'Unable to connect to the camera on this device. You can still scan items manually.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white70, fontSize: 13),
+                        style: const TextStyle(color: Colors.white70, fontSize: 13),
                       ),
                       const SizedBox(height: 20),
-                      ElevatedButton.icon(
-                        onPressed: _showManualBarcodeSheet,
-                        icon: const Icon(Icons.keyboard),
-                        label: const Text('Enter Barcode Manually'),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        alignment: WrapAlignment.center,
+                        children: [
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                            ),
+                            onPressed: () => _scannerController.start(),
+                            icon: const Icon(Icons.refresh_rounded, size: 18),
+                            label: const Text('Retry Camera'),
+                          ),
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: AppColors.textPrimary,
+                            ),
+                            onPressed: _showManualBarcodeSheet,
+                            icon: const Icon(Icons.keyboard, size: 18),
+                            label: const Text('Manual Barcode'),
+                          ),
+                          OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: const BorderSide(color: Colors.white70),
+                            ),
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => const QrTestingScreen()),
+                              );
+                            },
+                            icon: const Icon(Icons.qr_code, size: 18),
+                            label: const Text('Test QR Bench'),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -479,92 +615,35 @@ class _ScannerScreenState extends State<ScannerScreen> {
             ),
           ),
 
-          // Just-Added Product Notification Card (With "Scan Next Product" & "View Bill")
-          if (_lastAddedProduct != null)
+          // Fast Product Lookup HUD
+          if (_isProcessingScan)
             Positioned(
-              bottom: cartProvider.isEmpty ? 24 : 88,
-              left: 16,
-              right: 16,
-              child: Card(
-                color: Colors.white,
-                elevation: 8,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: Padding(
-                  padding: const EdgeInsets.all(14.0),
-                  child: Column(
+              top: 76,
+              left: 40,
+              right: 40,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.primary, width: 1.5),
+                  ),
+                  child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryLight,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(Icons.check_circle, color: AppColors.primary, size: 24),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _lastAddedProduct!.name,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                Text(
-                                  '₹${_lastAddedProduct!.price.toStringAsFixed(2)} • In Bill: $_lastAddedQuantity',
-                                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                                ),
-                              ],
-                            ),
-                          ),
-                          PriceText(
-                            amount: _lastAddedProduct!.price * _lastAddedQuantity,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.primaryDark,
-                            ),
-                          ),
-                        ],
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                        ),
                       ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () {
-                                setState(() => _lastAddedProduct = null);
-                              },
-                              icon: const Icon(Icons.qr_code_scanner, size: 16),
-                              label: const Text('Scan Next Product'),
-                              style: OutlinedButton.styleFrom(
-                                visualDensity: VisualDensity.compact,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(builder: (_) => const CartScreen()),
-                                );
-                              },
-                              icon: const Icon(Icons.receipt_long, size: 16),
-                              label: const Text('View Bill'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                foregroundColor: Colors.white,
-                                visualDensity: VisualDensity.compact,
-                              ),
-                            ),
-                          ),
-                        ],
+                      SizedBox(width: 10),
+                      Text(
+                        'Looking up product...',
+                        style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
@@ -572,7 +651,100 @@ class _ScannerScreenState extends State<ScannerScreen> {
               ),
             ),
 
-          // Persistent Bottom Bill Bar
+          // Instant Non-blocking Product Feedback Toast (No "View Bill" button)
+          if (_lastAddedProduct != null)
+            Positioned(
+              bottom: 84,
+              left: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.25),
+                      blurRadius: 14,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: AppColors.primaryLight,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _lastAddedProduct!.name,
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '₹${_lastAddedProduct!.price.toStringAsFixed(2)} • In Bill: $_lastAddedQuantity',
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w400, color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    PriceText(
+                      amount: _lastAddedProduct!.price * _lastAddedQuantity,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const CartScreen()),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'View Bill',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primaryDark,
+                              ),
+                            ),
+                            SizedBox(width: 2),
+                            Icon(Icons.arrow_forward, size: 12, color: AppColors.primaryDark),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          // Persistent Bottom Bill Bar with View Bill Button
           Positioned(
             bottom: 16,
             left: 16,
@@ -615,8 +787,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
                           amount: cartProvider.total,
                           style: const TextStyle(
                             fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.primaryDark,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
                           ),
                         ),
                       ],
@@ -634,13 +806,14 @@ class _ScannerScreenState extends State<ScannerScreen> {
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text('View Bill', style: TextStyle(fontWeight: FontWeight.bold)),
+                        Text('View Bill', style: TextStyle(fontWeight: FontWeight.w600)),
                         SizedBox(width: 4),
-                        Icon(Icons.arrow_forward, size: 16),
+                        Icon(Icons.arrow_forward_rounded, size: 16),
                       ],
                     ),
                   ),

@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -6,13 +7,21 @@ from app.core.database import Base, engine
 import app.models  # Ensures all models are registered with Base.metadata
 from app.api.v1.api import api_router
 
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Ensure database tables are created
-    Base.metadata.create_all(bind=engine)
+    # Startup: Ensure database tables are created if engine connects to MySQL
+    try:
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database schema initialized successfully.")
+    except Exception as e:
+        logger.warning(
+            f"Database auto-creation skipped or failed ({e}). "
+            f"Ensure MySQL is running and Alembic migrations have been applied."
+        )
     yield
-    # Shutdown logic if any
 
 
 app = FastAPI(

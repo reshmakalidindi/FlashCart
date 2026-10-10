@@ -36,7 +36,7 @@ class EmptyCartWidget extends StatelessWidget {
               'Your Cart is Empty',
               style: TextStyle(
                 fontSize: 22,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary,
               ),
             ),
