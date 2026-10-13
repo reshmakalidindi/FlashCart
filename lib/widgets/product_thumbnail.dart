@@ -17,14 +17,12 @@ class ProductThumbnail extends StatelessWidget {
     required this.product,
     this.size = 72,
     this.borderRadius = 14,
-    this.preferPhoto = false,
+    this.preferPhoto = true,
   });
 
   static String? _getAssetPhotoPath(String id, String rawImageUrl) {
-    // Only return non-QR local assets if explicitly provided and not a QR code
     if (rawImageUrl.startsWith('assets/') &&
-        !rawImageUrl.contains('product_qrs') &&
-        !rawImageUrl.contains('P00')) {
+        !rawImageUrl.contains('product_qrs')) {
       return rawImageUrl;
     }
     return null;
@@ -144,20 +142,26 @@ class ProductThumbnail extends StatelessWidget {
     Widget imageContent;
 
     if (preferPhoto && assetPath != null) {
-      imageContent = Image.asset(
-        assetPath,
-        width: size,
-        height: size,
-        fit: BoxFit.contain,
-        errorBuilder: (ctx, err, stack) => _buildPlaceholder(visuals),
+      imageContent = Padding(
+        padding: const EdgeInsets.all(4.0),
+        child: Image.asset(
+          assetPath,
+          width: size,
+          height: size,
+          fit: BoxFit.contain,
+          errorBuilder: (ctx, err, stack) => _buildPlaceholder(visuals),
+        ),
       );
     } else if (preferPhoto && hasNetworkUrl) {
-      imageContent = Image.network(
-        product.imageUrl,
-        width: size,
-        height: size,
-        fit: BoxFit.cover,
-        errorBuilder: (ctx, err, stack) => _buildPlaceholder(visuals),
+      imageContent = Padding(
+        padding: const EdgeInsets.all(4.0),
+        child: Image.network(
+          product.imageUrl,
+          width: size,
+          height: size,
+          fit: BoxFit.contain,
+          errorBuilder: (ctx, err, stack) => _buildPlaceholder(visuals),
+        ),
       );
     } else {
       imageContent = _buildPlaceholder(visuals);

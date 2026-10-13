@@ -5,6 +5,7 @@ import '../providers/cart_provider.dart';
 import '../utils/constants.dart';
 import '../widgets/price_text.dart';
 import '../widgets/primary_button.dart';
+import '../widgets/product_thumbnail.dart';
 import 'cart_screen.dart';
 
 class ProductDetailsScreen extends StatefulWidget {
@@ -90,19 +91,11 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                       width: 160,
                       height: 160,
                       color: AppColors.background,
-                      child: Image.network(
-                        product.imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            color: AppColors.primaryLight,
-                            child: const Icon(
-                              Icons.shopping_bag_outlined,
-                              color: AppColors.primary,
-                              size: 72,
-                            ),
-                          );
-                        },
+                      child: ProductThumbnail(
+                        product: product,
+                        size: 160,
+                        borderRadius: 20,
+                        preferPhoto: true,
                       ),
                     ),
                   ),

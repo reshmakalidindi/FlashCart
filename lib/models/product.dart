@@ -5,6 +5,7 @@ class Product {
   final String name;
   final String barcode;
   final double price;
+  final double originalPrice;
   final String weight;
   final String unit;
   final String category;
@@ -21,6 +22,7 @@ class Product {
     required this.name,
     required this.barcode,
     required this.price,
+    this.originalPrice = 0.0,
     required this.weight,
     required this.unit,
     required this.category,
@@ -33,6 +35,13 @@ class Product {
     this.storeId = 'STORE_DMART_001',
   });
 
+  double get effectiveOriginalPrice =>
+      (originalPrice > price) ? originalPrice : (price * 1.15).ceilToDouble();
+
+  int get discountPercent => (effectiveOriginalPrice > price)
+      ? (((effectiveOriginalPrice - price) / effectiveOriginalPrice) * 100).round()
+      : 0;
+
   factory Product.fromMap(Map<String, dynamic> map, String docId) {
     final effectiveId = docId.isNotEmpty
         ? docId
@@ -43,12 +52,16 @@ class Product {
     final price = rawPrice > 0
         ? rawPrice
         : AppConstants.getAuthoritativePrice(effectiveId.isNotEmpty ? effectiveId : barcode, rawPrice);
+    final origPrice = (map['originalPrice'] as num?)?.toDouble() ??
+        (map['original_price'] as num?)?.toDouble() ??
+        0.0;
 
     return Product(
       id: effectiveId,
       name: map['name'] ?? '',
       barcode: barcode,
       price: price,
+      originalPrice: origPrice,
       weight: map['weight'] ?? '',
       unit: map['unit'] ?? '',
       category: map['category'] ?? 'General',
@@ -74,11 +87,16 @@ class Product {
         ? rawPrice
         : AppConstants.getAuthoritativePrice(id.isNotEmpty ? id : barcode, rawPrice);
 
+    final origPrice = (json['original_price'] as num?)?.toDouble() ?? 
+        (json['originalPrice'] as num?)?.toDouble() ?? 
+        0.0;
+
     return Product(
       id: id,
       name: json['name'] ?? '',
       barcode: barcode,
       price: price,
+      originalPrice: origPrice,
       weight: json['weight'] ?? '',
       unit: json['unit'] ?? '',
       category: json['category'] ?? 'General',
@@ -97,6 +115,7 @@ class Product {
       'name': name,
       'barcode': barcode,
       'price': price,
+      'originalPrice': originalPrice,
       'weight': weight,
       'unit': unit,
       'category': category,
@@ -115,6 +134,7 @@ class Product {
     String? name,
     String? barcode,
     double? price,
+    double? originalPrice,
     String? weight,
     String? unit,
     String? category,
@@ -131,6 +151,7 @@ class Product {
       name: name ?? this.name,
       barcode: barcode ?? this.barcode,
       price: price ?? this.price,
+      originalPrice: originalPrice ?? this.originalPrice,
       weight: weight ?? this.weight,
       unit: unit ?? this.unit,
       category: category ?? this.category,

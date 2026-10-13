@@ -36,8 +36,8 @@ class ProductCard extends StatelessWidget {
       orElse: () => null,
     );
     final int qtyInCart = inCartItem?.quantity ?? 0;
-    final double discount = _getCalculatedDiscountPercent();
-    final double mrp = (product.price * 1.15).ceilToDouble();
+    final double discount = product.discountPercent.toDouble();
+    final double mrp = product.effectiveOriginalPrice;
 
     return InkWell(
       onTap: onTap ?? () => _showProductDetailsModal(context),
@@ -76,6 +76,7 @@ class ProductCard extends StatelessWidget {
                         product: product,
                         size: 80,
                         borderRadius: 10,
+                        preferPhoto: true,
                       ),
                     ),
                   ),
