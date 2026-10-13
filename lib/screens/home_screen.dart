@@ -10,6 +10,7 @@ import '../widgets/product_card.dart';
 import 'scanner_screen.dart';
 import 'cart_screen.dart';
 import 'profile_screen.dart';
+import 'category_products_screen.dart';
 
 class _CategoryItem {
   final String id;
@@ -651,16 +652,92 @@ class HomeScreenState extends State<HomeScreen> {
                   color: AppColors.textPrimary,
                 ),
               ),
-              Text(
-                '${displayedProducts.length} items',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w400,
-                  color: AppColors.textSecondary,
+              if (_selectedCategoryFilter != null)
+                TextButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _selectedCategoryFilter = null;
+                    });
+                  },
+                  icon: const Icon(Icons.clear_rounded, size: 14, color: AppColors.leafGreen),
+                  label: Text(
+                    'Clear Filter',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.leafGreen,
+                    ),
+                  ),
+                )
+              else
+                Text(
+                  '${displayedProducts.length} items',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
-              ),
             ],
           ),
+
+          if (_selectedCategoryFilter != null) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.leafGreen.withValues(alpha: 0.25)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.check_circle_rounded, size: 16, color: AppColors.leafGreen),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Filtered by ${_selectedCategoryFilter!} (${displayedProducts.length} items)',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primaryDark,
+                      ),
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => CategoryProductsScreen(
+                            categoryName: _selectedCategoryFilter!,
+                          ),
+                        ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Open Page',
+                            style: GoogleFonts.inter(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.leafGreen,
+                            ),
+                          ),
+                          const SizedBox(width: 3),
+                          const Icon(Icons.arrow_forward_rounded, size: 13, color: AppColors.leafGreen),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
 
           const SizedBox(height: 12),
 
@@ -795,16 +872,34 @@ class HomeScreenState extends State<HomeScreen> {
           }
         });
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Viewing ${cat.name} items. Scan barcodes on shelves to add!'),
-            duration: const Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-            action: SnackBarAction(
-              label: 'Open Scan',
-              textColor: Colors.white,
-              onPressed: () => onTabTapped(1),
+        if (_selectedCategoryFilter != null) {
+          final count = _catalogProducts
+              .where((p) => p.category.toLowerCase() == cat.name.toLowerCase())
+              .length;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Displaying $count ${cat.name} products below.'),
+              duration: const Duration(seconds: 3),
+              behavior: SnackBarBehavior.floating,
+              action: SnackBarAction(
+                label: 'Open Page',
+                textColor: AppColors.butterYellow,
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => CategoryProductsScreen(categoryName: cat.name),
+                    ),
+                  );
+                },
+              ),
             ),
+          );
+        }
+      },
+      onLongPress: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => CategoryProductsScreen(categoryName: cat.name),
           ),
         );
       },
